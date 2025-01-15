@@ -1,0 +1,81 @@
+---
+title: "Untitled"
+output: html_document
+date: "2025-01-15"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+
+```{r cars}
+# Load required libraries
+library(caret)
+library(dplyr)
+library(ggplot2)
+library(pROC)
+```
+
+
+```{r cars}
+# For demonstration purposes, a synthetic dataset was created to replicate the structure and features of the confidential healthcare data used in the project.
+setwd<-"/Users/emily/Downloads"
+data<-read.csv("synthetic_healthcare_data.csv")
+```
+
+
+```{r cars}
+# Explore the data
+str(data)
+summary(data)
+
+# Convert categorical variables to factors
+data <- data %>%
+  mutate(
+    Gender = as.factor(Gender),
+    Readmitted = as.factor(Readmitted)
+  )
+
+# Split the data into training and testing sets
+set.seed(123)
+trainIndex <- createDataPartition(data$Readmitted, p = 0.8, list = FALSE)
+trainData <- data[trainIndex, ]
+testData <- data[-trainIndex, ]
+
+# Train a logistic regression model
+model <- train(
+  Readmitted ~ Age + Gender + ChronicConditions + LengthOfStay + PriorReadmissions,
+  data = trainData,
+  method = "glm",
+  family = "binomial",
+  trControl = trainControl(method = "cv", number = 10)
+)
+
+# Model summary
+summary(model)
+```
+
+
+```{r cars}
+# Make predictions on the test data
+predictions <- predict(model, testData, type = "prob")
+testData$Predicted <- ifelse(predictions[, 2] > 0.5, 1, 0)
+
+# Evaluate model performance
+confusionMatrix(
+  as.factor(testData$Predicted),
+  as.factor(testData$Readmitted)
+)
+
+# ROC Curve and AUC
+roc_curve <- roc(testData$Readmitted, predictions[, 2])
+auc_value <- auc(roc_curve)
+plot(roc_curve, main = paste("ROC Curve (AUC =", round(auc_value, 2), ")"))
+
+# Feature Importance
+varImp(model)
+
+```
+
